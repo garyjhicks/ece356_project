@@ -1,13 +1,47 @@
 import argparse
 import connect
 
+parser = argparse.ArgumentParser(description='Welcome to the our project focusing on the MLB. This is meant for fans interested is determining all kinds of stats and relationships over the course of the MLB from 2015-2018.')
 
-parser = argparse.ArgumentParser(description='Welcome to the our project focusing on the MLB.')
+parser.add_argument('--quit', action='store_true', help='Exit the cli.')
 
 # Only allow batter, pitcher, team, batter and pitcher, batter and team, pitcher and team, never all three
-parser.add_argument('--batter', dest='batter', nargs=2, default=None, help='Specify batter name.')
-parser.add_argument('--pitcher', dest='pitcher', nargs=2, default=None, help='Specify pitcher name.')
-parser.add_argument('--team', dest='team', default=None, help='Specify team name.')
+parser.add_argument('--batter_fn', dest='batter_fn', nargs='+', default=None, help='Specify batter first name.')
+parser.add_argument('--pitcher_fn', dest='pitcher_fn', nargs='+', default=None, help='Specify pitcher first name.')
+parser.add_argument('--batter_ln', dest='batter_ln', nargs='+', default=None, help='Specify batter last name.')
+parser.add_argument('--pitcher_ln', dest='pitcher_ln', nargs='+', default=None, help='Specify pitcher last name.')
+parser.add_argument('--team', dest='team', default=None, nargs='+', choices=[
+    'Angels',
+    'Diamondbacks',
+    'Braves',
+    'Orioles',
+    'Red Sox',
+    'White Sox',
+    'Cubs',
+    'Reds',
+    'Indians',
+    'Rockies',
+    'Tigers',
+    'Astros',
+    'Royals',
+    'Dodgers',
+    'Marlins',
+    'Brewers',
+    'Reds',
+    'Yankees',
+    'Mets',
+    'Athletics',
+    'Phillies',
+    'Pirates',
+    'Padres',
+    'Mariners',
+    'Giants',
+    'Cardinals',
+    'Rays',
+    'Rangers',
+    'Blue Jays',
+    'Nationals'
+],help='Specify team name.')
 
 # date and season filters 
 parser.add_argument('--d', dest='d', default=None, help='Specify date in form of DD/MM/YYYY.')
@@ -207,7 +241,24 @@ parser.add_argument('--home_or_away', dest='home_or_away', default=None, choices
 ]
 , help='Specify whether you want stats when home or away.')
 
-args = parser.parse_args()
+# Explicitly showing help at start
+try:
+    args = parser.parse_args(['-h'])
+except SystemExit as e:
+    pass
 
-print(args.batter)
-print(args)
+# Loop until --quit
+while True:
+    command = input("Command: ")
+    
+    try:
+        args = parser.parse_args(command.split())
+    except SystemExit as e:
+        if str(e) != '0':
+            print('Error with input. See line above for details. Run -h for help.')
+        continue
+    
+    print(args)
+    if args.quit:
+        print("Goodbye!")
+        break
