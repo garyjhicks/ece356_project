@@ -34,7 +34,7 @@ VALUES
 (08,'CIN','Cincinnati','Reds'),
 (09,'CLE','Cleveland','Indians'),
 (10,'COL','Colorado','Rockies'),
-(11,'DET','Detroit','Tigers’'),
+(11,'DET','Detroit','Tigers'),
 (12,'HOU','Houston','Astros'),
 (13,'KCA','Kansas City','Royals'),
 (14,'LAN','Los Angeles','Dodgers'),
