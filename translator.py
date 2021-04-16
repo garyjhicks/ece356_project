@@ -4,13 +4,30 @@ from datetime import timedelta
 
 class Options:
     def __init__(self):
-        self.batter_fn='John'
-        self.batter_ln='Fluffy'
-        self.pitcher_fn=None
-        self.pitcher_ln=None
-        self.dr=["29/01/2018","30/01/2019"]
+        self.batter_fn = None
+        self.batter_ln = None
+        self.pitcher_fn = 'John'
+        self.pitcher_ln = 'Fluffy'
+        self.dr = None
+        self.d = None
         self.event_count = None
         self.team = None
+        self.opp_team_vs_b = None
+        self.opp_team_vs_p = None
+        self.opp_team_vs_t = None
+        self.season = "2016"
+        self.pitch_stat = None
+        self.pitch_filter = None
+        self.zone_filter = None
+        self.men_on_base = None
+        self.ball_count = None
+        self.strikecount = None
+        self.team_stat = None
+        self.pitcher_stat = 'WHIP'
+        self.pitcher_stat = None
+        self.pitcher_throws = None
+        self.batter_stands = None
+        self.num_outs = None
         
 # player single stat selection
 # allow for aggrgation (max, count, min)
@@ -67,8 +84,11 @@ def player_name_option(first,last):
 def player_id_filter(pid):
     return "playerID = {playerID}".format(playerID=pid)
 
-def playerID_where_subquery(first,last):
-    return "playerID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
+def pitcherID_where_subquery(first,last):
+    return "pitcherID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
+
+def batterID_where_subquery(first,last):
+    return "batterID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
 
 def teamID_where_subquery(name):
     team = " ".join(name)
@@ -101,6 +121,33 @@ def select_player_stat(options):
     q = "SELECT "
     if options.event_count:
         q += ("COUNT(event)")
+    
+    if options.pitcher_stat:
+        if options.pitcher_stat == 'K/9':
+            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+        if options.pitcher_stat == 'WHIP':
+            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+        if options.pitcher_stat == 'HR/9':
+            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+        if options.pitcher_stat == 'BB/9':
+            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+        if options.pitcher_stat == 'K/BB':
+            q += "(SELECT COUNT(event) FROM WHERE {} AND event = \'Strikeout\')/ COUNT(event)".pitcherID_where_subquery(options.pitcher_fn,options.pitcher_fn)
+    
+    if options.batter_stat:
+        if options.batter_stat == 'BA':
+            q += "(Select Count(*) from AtBats WHERE {} AND (event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+        if options.batter_stat == 'SLG':
+            q += "((select COUNT(event) FROM AtBats WHERE event = \'Single\' AND {player}) + 2 x (SELECT COUNT(event) FROM Atbats where event = \'Double\' AND {player}) + 3 x (SELECT COUNT(event) FROM Atbats where event = \'Triple\' AND {player}) + 4 x (SELECT COUNT(event) FROM Atbats where event = \'Home Run\' AND {player}) ) / Count(*)".format(player=batterID_where_subquery(options.batter_fn,options.batter_ln))
+        if options.batter_stat == 'OBP':
+            q += "(Select Count(*) from AtBats WHERE {} AND (event = \'Hit By Pitch\' OR event = \'Walk\' OR event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+        if options.batter_stat == 'OPS':
+            SLG = "((select COUNT(event) FROM AtBats WHERE event = \'Single\' AND {player}) + 2 x (SELECT COUNT(event) FROM Atbats where event = \'Double\' AND {player}) + 3 x (SELECT COUNT(event) FROM Atbats where event = \'Triple\' AND {player}) + 4 x (SELECT COUNT(event) FROM Atbats where event = \'Home Run\' AND {player}) ) / Count(*)".format(player=batterID_where_subquery(options.batter_fn,options.batter_ln))
+            OBP = "(Select Count(*) from AtBats WHERE {} AND (event = \'Hit By Pitch\' OR event = \'Walk\' OR event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+            q += "({} + {})".format(SLG,OBP)
+        if options.batter_stat == 'BB/K':
+            q += "(SELECT COUNT(*) from AtBats WHERE {} AND event = \'Walk\') / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+
 
     # stat thats not pitch_type or zone
     if options.pitch_stat:
@@ -120,7 +167,8 @@ def from_statement(options):
         options.event_count or
         options.pitcher_throws or
         options.batter_stands or
-        options.num_outs):
+        options.num_outs or
+        options.pitcher_stat):
         tables_needed.add("AtBats")
     if (options.pitch_stat or 
         options.pitch_stat or 
@@ -144,28 +192,30 @@ def from_statement(options):
     if "AtBats" in tables_needed and "Pitches" in tables_needed:
         arr.append("AtBats INNER JOIN (Pitches INNER JOIN (SELECT abID,MAX(pitchNum) as maxPitchNum FROM Pitches GROUP BY abID) as A ON Pitches.abID = A.abID AND Pitches.pitchNum = A.maxPitchNum) ON Pitches.abID = AtBats.abID")
 
-    return "FROM " + "".join(arr)
+    return " FROM " + "".join(arr)
 
 def where_statement(options):
     #TODO iterate thorugh options to be appended to query
-    q = "WHERE "
+    q = " WHERE "
     arr = []
     if options.batter_fn: # need to get playerID
         firstName = options.batter_fn
         lastName = options.batter_ln
-        arr.append(playerID_where_subquery(firstName,lastName))
+        arr.append(batterID_where_subquery(firstName,lastName))
     if options.pitcher_fn: # need to get playerID
         firstName = options.pitcher_fn
         lastName = options.pitcher_ln
-        arr.append(playerID_where_subquery(firstName,lastName))
+        arr.append(pitcherID_where_subquery(firstName,lastName))
     if options.team:
         arr.append(teamID_where_subquery(options.team))
     if options.dr:
         start = options.dr[0]
         end = options.dr[1]
         arr.append(dr_option(start,end))
+    if options.season:
+        arr.append(season_option(options.season))
     if options.event_count:
-        arr.append(event_option(option.event_count))
+        arr.append(event_option(options.event_count))
     if options.pitch_filter:
         arr.append(pitch_filter_option(options.pitch_filter))
     if options.opp_team_vs_b:
@@ -174,19 +224,83 @@ def where_statement(options):
         arr.append(opp_team_vs_p_option(options.opp_team_vs_p))
     if options.opp_team_vs_t:
         arr.append(opp_team_vs_t_option(options.opp_team_vs_t))
+    if options.pitcher_stat:
+        if options.pitcher_stat == 'K/9':
+            arr.append(event_option('Strikeout'))
+        if options.pitcher_stat == 'WHIP':
+            scores = []
+            scores.append(event_option('Walk'))
+            scores.append(event_option('Single'))
+            scores.append(event_option('Double'))
+            scores.append(event_option('Triple'))
+            scores.append(event_option('Home Run'))
+            arr.append("({})".format(" OR ".join(scores)))
+        if options.pitcher_stat == 'HR/9':
+            arr.append(event_option('Home Run'))
+        if options.pitcher_stat == 'BB/9':
+            arr.append(event_option('Walk'))
+        if options.pitcher_stat == 'K/BB':
+            arr.append(event_option('Walk'))
+    if options.batter_stat:
+        if options.batter_stat == 'BA' or options.batter_stat == 'SLG' or options.batter_stat == 'OPS':
+            events = []
+            events.append(event_option('Bunt Groundout'))
+            events.append(event_option('Field Error'))
+            events.append(event_option('Fielders Choice'))
+            events.append(event_option('Fielders Choice Out'))
+            events.append(event_option('Flyout'))
+            events.append(event_option('Forceout'))
+            events.append(event_option('Grounded Into DP'))
+            events.append(event_option('Groundout'))
+            events.append(event_option('Lineout'))
+            events.append(event_option('Popout'))
+            events.append(event_option('Strikeout'))
+            events.append(event_option('Strikeout DP'))
+            events.append(event_option('Triple Play'))
+            events.append(event_option('Single'))
+            events.append(event_option('Double'))
+            events.append(event_option('Triple'))
+            events.append(event_option('Home Run'))
+            arr.append("({})".format(" OR ".join(events)))
+        if options.batter_stat == 'OBP':
+            events = []
+            events.append(event_option('Walk'))
+            events.append(event_option('Hit By Pitch'))
+            events.append(event_option('Bunt Groundout'))
+            events.append(event_option('Field Error'))
+            events.append(event_option('Fielders Choice'))
+            events.append(event_option('Fielders Choice Out'))
+            events.append(event_option('Flyout'))
+            events.append(event_option('Forceout'))
+            events.append(event_option('Grounded Into DP'))
+            events.append(event_option('Groundout'))
+            events.append(event_option('Lineout'))
+            events.append(event_option('Popout'))
+            events.append(event_option('Strikeout'))
+            events.append(event_option('Strikeout DP'))
+            events.append(event_option('Triple Play'))
+            events.append(event_option('Single'))
+            events.append(event_option('Double'))
+            events.append(event_option('Triple'))
+            events.append(event_option('Home Run'))
+            arr.append("({})".format(" OR ".join(events)))
+        if options.batter_stat == 'BB/K':
+            arr.append(event_option('Strikeout'))
+
+
 
     return q + " AND ".join(arr) + ";"
 
 def query_builder(options):
     
     # iterate through options and build string
-    query = select_stat_statement()
-    query += from_statement()
-    query += where_statement()
+    query = select_player_stat(options)
+    query += from_statement(options)
+    query += where_statement(options)
     return query
 
 #print(select_player_stat("event") + from_statement() +  + event_option("Strikeout"))
 
 
 options = Options()
-print(where_statement(options))
+print(query_builder(options))
