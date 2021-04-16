@@ -2,18 +2,33 @@ from datetime import datetime
 from datetime import timedelta
 
 
+class Options:
+    def __init__(self):
+        self.batter_fn='John'
+        self.batter_ln='Fluffy'
+        self.pitcher_fn=None
+        self.pitcher_ln=None
+        self.dr=["29/01/2018","30/01/2019"]
+        self.event_count = None
+        self.team = None
+        
 # player single stat selection
 # allow for aggrgation (max, count, min)
 # options in the CLI will be flags for where or not 
 
 # "SELECT (stat) FROM Atbats INNER JOIN Games ON gameid INNER JOIN PlayerNames ON playerId WHERE  dateTime"
+# stringify
+def s(string):
+    return "\'" + string + "\'"
 
 def dt_date_converter(date):
     return datetime.strptime(date, '%d/%m/%Y')
 
 # input is datetime objects
 def dr_dt(start,end):
-    return "dateTime > {start} AND dateTime < {end}".format(start=start,end=end)
+    start_date = start.strftime('%x %X')
+    end_date = end.strftime('%x %X')
+    return "dateTime > {start} AND dateTime < {end}".format(start=s(start_date),end=s(end_date))
 
 # -d exact
 def d_option(date):
@@ -35,28 +50,61 @@ def season_option(s):
 
 # -e event (flyout, strikout..)
 def event_option(e):
-    return "event = {event}".format(event=e)
+    return "event = {event}".format(event=s(e))
+
+def pitch_filter_option(p):
+    return "pitchType = {p}".format(p=s(p))
 
 def stat_count_option(stat, count):
-    return "{stat} = {count}".format(stat=stat, count=count)
+    return "{stat} = {count}".format(stat=s(stat), count=count)
+
+def stand_option(stand):
+    return "stand = {stand}".format(stand=s(stand))
 
 def player_name_option(first,last):
-    return "firstName = {first} AND lastName = {last}"
+    return "firstName = {first} AND lastName = {last}".format(first=s(first),last=s(last))
 
+def player_id_filter(pid):
+    return "playerID = {playerID}".format(playerID=pid)
 
+def playerID_where_subquery(first,last):
+    return "playerID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
 
+def teamID_where_subquery(name):
+    team = " ".join(name)
+    home = "homeTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(team))
+    away = "awayTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(team))
+    return "({home} OR {away})".format(home=home,away=away)
 # TODO finish off adding player options
 
+def teamID_from_teamName_subquery(name):
+    team = " ".join(name)
+    return "(SELECT teamID FROM Teams WHERE name = {})".format(s(team))
+
+def opp_team_vs_b_option(team):
+    if_b_home = "(isTop = true AND homeTeamID = {})".format(teamID_from_teamName_subquery(team))
+    if_b_away = "(isTop = false AND awayTeamID = {})".format(teamID_from_teamName_subquery(team))
+    return "WHERE {h} OR {a}".format(h=if_b_home,a=if_b_away)
+
+def opp_team_vs_p_option(team):
+    if_p_home = "(isTop = false AND homeTeamID = {})".format(teamID_from_teamName_subquery(team))
+    if_p_away = "(isTop = true AND awayTeamID = {})".format(teamID_from_teamName_subquery(team))
+    return "WHERE {h} OR {a}".format(h=if_p_home,a=if_p_away)
+
+def opp_team_vs_t_option(team):
+    if_t_home = "(homeTeamID = {})".format(teamID_from_teamName_subquery(team))
+    if_t_away = "(awayTeamID = {})".format(teamID_from_teamName_subquery(team))
+    return "WHERE {h} OR {a}".format(h=if_t_home,a=if_t_away)
 
 # single player stat
-def select_player_stat(stat, get_min=False, get_max=False):
+def select_player_stat(options):
     q = "SELECT "
+    if options.event_count:
+        q += ("COUNT(event)")
 
-    if get_min: q += "MIN({stat})".format(stat=stat)
-    elif get_max: q += "MAX({stat})".format(stat=stat)
-    else: q += "COUNT({stat})".format(stat=stat)
-
-    q += " FROM "
+    # stat thats not pitch_type or zone
+    if options.pitch_stat:
+        q += ("AVG(event)")
 
     return q
 
@@ -66,20 +114,75 @@ def select_player_stat(stat, get_min=False, get_max=False):
 
 def from_statement(options):
     #TODO classify diff types and figure out joins
-    if "batter" in options:
-        return "FROM AtBats INNER JOIN Game INNER JOIN PlayerName"
-    return ""
+    tables_needed = set()
+    arr = []
+    if (options.batter_fn or
+        options.event_count or
+        options.pitcher_throws or
+        options.batter_stands or
+        options.num_outs):
+        tables_needed.add("AtBats")
+    if (options.pitch_stat or 
+        options.pitch_stat or 
+        options.pitch_filter or 
+        options.zone_filter or 
+        options.men_on_base or
+        options.ball_count or
+        options.strikecount):
+        tables_needed.add("Pitches")
+    if (options.d or
+        options.dr or
+        options.season or
+        options.team_stat or
+        options.home_or_away):
+        tables_needed.add("Games")
+    if (options.team or
+        options.team_stat):
+        tables_needed.add("Teams")
+    if "AtBats" in tables_needed and "Games" in tables_needed:
+        arr.append("AtBats INNER JOIN Games ON AtBats.gameID = Games.gameID")
+    if "AtBats" in tables_needed and "Pitches" in tables_needed:
+        arr.append("AtBats INNER JOIN (Pitches INNER JOIN (SELECT abID,MAX(pitchNum) as maxPitchNum FROM Pitches GROUP BY abID) as A ON Pitches.abID = A.abID AND Pitches.pitchNum = A.maxPitchNum) ON Pitches.abID = AtBats.abID")
+
+
 
 def where_statement(options):
     #TODO iterate thorugh options to be appended to query
-    return ""
+    q = "WHERE "
+    arr = []
+    if options.batter_fn: # need to get playerID
+        firstName = options.batter_fn
+        lastName = options.batter_ln
+        arr.append(playerID_where_subquery(firstName,lastName))
+    if options.pitcher_fn: # need to get playerID
+        firstName = options.pitcher_fn
+        lastName = options.pitcher_ln
+        arr.append(playerID_where_subquery(firstName,lastName))
+    if options.team:
+        arr.append(teamID_where_subquery(options.team))
+    if options.dr:
+        start = options.dr[0]
+        end = options.dr[1]
+        arr.append(dr_option(start,end))
+    if options.event_count:
+        arr.append(event_option(option.event_count))
+    if options.pitch_filter:
+        arr.append(pitch_filter_option(options.pitch_filter))
+    if options.opp_team_vs_b:
+        arr.append(opp_team_vs_b_option(options.opp_team_vs_b))
 
-def query_builder(stat, options):
+    return q + " AND ".join(arr) + ";"
+
+def query_builder(options):
     
     # iterate through options and build string
-    query = select_stat_statement(stat)
+    query = select_stat_statement()
     query += from_statement()
     query += where_statement()
     return query
 
 #print(select_player_stat("event") + from_statement() +  + event_option("Strikeout"))
+
+
+options = Options()
+print(where_statement(options))
