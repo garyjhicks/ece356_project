@@ -71,11 +71,30 @@ def playerID_where_subquery(first,last):
     return "playerID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
 
 def teamID_where_subquery(name):
-    home = "homeTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(name))
-    away = "awayTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(name))
+    team = " ".join(name)
+    home = "homeTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(team))
+    away = "awayTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(team))
     return "({home} OR {away})".format(home=home,away=away)
 # TODO finish off adding player options
 
+def teamID_from_teamName_subquery(name):
+    team = " ".join(name)
+    return "(SELECT teamID FROM Teams WHERE name = {})".format(s(team))
+
+def opp_team_vs_b_option(team):
+    if_b_home = "(isTop = true AND homeTeamID = {})".format(teamID_from_teamName_subquery(team))
+    if_b_away = "(isTop = false AND awayTeamID = {})".format(teamID_from_teamName_subquery(team))
+    return "WHERE {h} OR {a}".format(h=if_b_home,a=if_b_away)
+
+def opp_team_vs_p_option(team):
+    if_p_home = "(isTop = false AND homeTeamID = {})".format(teamID_from_teamName_subquery(team))
+    if_p_away = "(isTop = true AND awayTeamID = {})".format(teamID_from_teamName_subquery(team))
+    return "WHERE {h} OR {a}".format(h=if_p_home,a=if_p_away)
+
+def opp_team_vs_t_option(team):
+    if_t_home = "(homeTeamID = {})".format(teamID_from_teamName_subquery(team))
+    if_t_away = "(awayTeamID = {})".format(teamID_from_teamName_subquery(team))
+    return "WHERE {h} OR {a}".format(h=if_t_home,a=if_t_away)
 
 # single player stat
 def select_player_stat(options):
@@ -140,7 +159,6 @@ def where_statement(options):
         lastName = options.pitcher_ln
         arr.append(playerID_where_subquery(firstName,lastName))
     if options.team:
-        team = " ".join(option.team)
         arr.append(teamID_where_subquery(options.team))
     if options.dr:
         start = options.dr[0]
@@ -150,6 +168,8 @@ def where_statement(options):
         arr.append(event_option(option.event_count))
     if options.pitch_filter:
         arr.append(pitch_filter_option(options.pitch_filter))
+    if options.opp_team_vs_b:
+        arr.append(opp_team_vs_b_option(options.opp_team_vs_b))
 
     return q + " AND ".join(arr) + ";"
 
