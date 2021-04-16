@@ -43,13 +43,112 @@ parser.add_argument('--team', dest='team', default=None, nargs='+', choices=[
     'Nationals'
 ],help='Specify team name.')
 
+parser.add_argument('--opp_team_vs_t', dest='opp_team_vs_t', default=None, nargs='+', choices=[
+    'Angels',
+    'Diamondbacks',
+    'Braves',
+    'Orioles',
+    'Red Sox',
+    'White Sox',
+    'Cubs',
+    'Reds',
+    'Indians',
+    'Rockies',
+    'Tigers',
+    'Astros',
+    'Royals',
+    'Dodgers',
+    'Marlins',
+    'Brewers',
+    'Reds',
+    'Yankees',
+    'Mets',
+    'Athletics',
+    'Phillies',
+    'Pirates',
+    'Padres',
+    'Mariners',
+    'Giants',
+    'Cardinals',
+    'Rays',
+    'Rangers',
+    'Blue Jays',
+    'Nationals'
+],help='Specify opposing team name.')
+
+parser.add_argument('--opp_team_vs_b', dest='opp_team_vs_b', default=None, nargs='+', choices=[
+    'Angels',
+    'Diamondbacks',
+    'Braves',
+    'Orioles',
+    'Red Sox',
+    'White Sox',
+    'Cubs',
+    'Reds',
+    'Indians',
+    'Rockies',
+    'Tigers',
+    'Astros',
+    'Royals',
+    'Dodgers',
+    'Marlins',
+    'Brewers',
+    'Reds',
+    'Yankees',
+    'Mets',
+    'Athletics',
+    'Phillies',
+    'Pirates',
+    'Padres',
+    'Mariners',
+    'Giants',
+    'Cardinals',
+    'Rays',
+    'Rangers',
+    'Blue Jays',
+    'Nationals'
+],help='Specify opposing team name.')
+
+parser.add_argument('--opp_team_vs_p', dest='opp_team_vs_p', default=None, nargs='+', choices=[
+    'Angels',
+    'Diamondbacks',
+    'Braves',
+    'Orioles',
+    'Red Sox',
+    'White Sox',
+    'Cubs',
+    'Reds',
+    'Indians',
+    'Rockies',
+    'Tigers',
+    'Astros',
+    'Royals',
+    'Dodgers',
+    'Marlins',
+    'Brewers',
+    'Reds',
+    'Yankees',
+    'Mets',
+    'Athletics',
+    'Phillies',
+    'Pirates',
+    'Padres',
+    'Mariners',
+    'Giants',
+    'Cardinals',
+    'Rays',
+    'Rangers',
+    'Blue Jays',
+    'Nationals'
+],help='Specify opposing team name.')
+
 # date and season filters 
 parser.add_argument('--d', dest='d', default=None, help='Specify date in form of DD/MM/YYYY.')
 parser.add_argument('--dr', dest='dr', nargs=2, default=None, help='Specify daterange in form of DD/MM/YYYY DD/MM/YYYY.')
 parser.add_argument('--season', dest='season', default=None, help='Specify season in form of YYYY.')
 
 # events that can be selected
-parser.add_argument('--event_count', dest='event_count', default=None, choices=
+parser.add_argument('--event_count', dest='event_count', nargs='+', default=None, choices=
 [
     'Batter Interference', 
     'Bunt Groundout',
@@ -133,7 +232,7 @@ parser.add_argument('--team_stat', dest='team_stat', default=None, choices=
     'avg_runs_for',
     'avg_runs_against',
     'avg_run_dif'
-    #count, return distrubtion
+    #count
     'wins',
     'losses',
     'run_dif',
@@ -157,6 +256,7 @@ parser.add_argument('--batter_stands', dest='batter_stands', default=None, choic
 ]
 , help='Specify whether you want stats solely against L or R standing batters.')
 
+# ONLY ALLOW FOR PITCHER QUERIES
 parser.add_argument('--zone_filter', dest='zone_filter', default=None, choices=
 [
 '1',
@@ -176,6 +276,7 @@ parser.add_argument('--zone_filter', dest='zone_filter', default=None, choices=
 ]
 , help='Specify whether you want stats solely for a given zone')
 
+# ONLY ALLOW FOR PITCHER QUERIES
 parser.add_argument('--pitch_filter', dest='pitch_filter', default=None, choices=
 [
 'CH',
