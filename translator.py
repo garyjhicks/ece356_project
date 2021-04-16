@@ -144,7 +144,7 @@ def from_statement(options):
     if "AtBats" in tables_needed and "Pitches" in tables_needed:
         arr.append("AtBats INNER JOIN (Pitches INNER JOIN (SELECT abID,MAX(pitchNum) as maxPitchNum FROM Pitches GROUP BY abID) as A ON Pitches.abID = A.abID AND Pitches.pitchNum = A.maxPitchNum) ON Pitches.abID = AtBats.abID")
 
-
+    return "FROM " + "".join(arr)
 
 def where_statement(options):
     #TODO iterate thorugh options to be appended to query
@@ -170,6 +170,10 @@ def where_statement(options):
         arr.append(pitch_filter_option(options.pitch_filter))
     if options.opp_team_vs_b:
         arr.append(opp_team_vs_b_option(options.opp_team_vs_b))
+    if options.opp_team_vs_p:
+        arr.append(opp_team_vs_p_option(options.opp_team_vs_p))
+    if options.opp_team_vs_t:
+        arr.append(opp_team_vs_t_option(options.opp_team_vs_t))
 
     return q + " AND ".join(arr) + ";"
 
