@@ -1,4 +1,4 @@
-import connect
+from connect import mycursor
 from parser import parser
 
 # Explicitly showing help at start
@@ -17,8 +17,18 @@ while True:
         if str(e) != '0':
             print('Error with input. See line above for details. Run -h for help.')
         continue
-    
-    print(args)
+
     if args.quit:
         print("Goodbye!")
         break
+
+    # Pass to translator
+    # execute query
+    # print
+
+    mycursor.execute("select * from Teams")
+    myresult = mycursor.fetchall()
+    print(myresult)
+    for x in myresult:
+        print(x)
+    

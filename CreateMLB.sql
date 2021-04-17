@@ -1,13 +1,18 @@
 -- Show warnings;
 warnings;
 
-drop table if exists Pitches;
-drop table if exists CorrectEjections;
-drop table if exists Ejections;
-drop table if exists temporaryEjections;
+drop table if exists FullPitches;
+drop table if exists PartialPitches;
+drop table if exists tempPitches;
+drop table if exists NonPlayerBallOrStrikeEjections;
+drop table if exists PlayerBallOrStrikeEjections;
+drop table if exists NonPlayerEjections;
+drop table if exists PlayerEjections;
+drop table if exists tempEjections;
 drop table if exists AtBats;
 drop table if exists GameOfficials;
 drop table if exists Games;
+drop table if exists tempGames;
 drop table if exists PlayerNames;
 drop table if exists Teams;
 
@@ -66,7 +71,7 @@ create table PlayerNames (
 -- Integrity Constraints
 );
 
-load data infile '/var/lib/mysql-files/MLB/player_names.csv' ignore into table PlayerNames
+load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/player_names.csv' ignore into table PlayerNames
      fields terminated by ','
      enclosed by '"'
      lines terminated by '\n'
@@ -94,7 +99,7 @@ create table TempGames (
             delay int
 );
 
-load data infile '/var/lib/mysql-files/MLB/games.csv' ignore into table TempGames
+load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/games.csv' ignore into table TempGames
      fields terminated by ','
      enclosed by '"'
      lines terminated by '\n'
@@ -138,15 +143,27 @@ create table Games (
             
 );
 
+-- insert into Games
+--     SELECT attendance, awayScore, Teams.teamID, date +  STR_TO_DATE(startTime, '%h:%i %p'), elapsed_time, gameID, homeScore, B.teamID, venueName, weather, wind, delay
+--     FROM (
+--         TempGames INNER JOIN Teams ON TempGames.awayTeamName = Teams.abbreviation
+
+--         INNER JOIN 
+
+--         (SELECT * FROM Teams) AS B ON TempGames.homeTeamName = B.abbreviation
+--     ) 
+--     WHERE gameID is not NULL;
+
 insert into Games
-    SELECT attendance, awayScore, Teams.teamID, date +  STR_TO_DATE(startTime, '%h:%i %p'), elapsed_time, gameID, homeScore, B.teamID, venueName, weather, wind, delay
+    SELECT attendance, awayScore, Teams.teamID, date, elapsed_time, gameID, homeScore, B.teamID, venueName, weather, wind, delay
     FROM (
         TempGames INNER JOIN Teams ON TempGames.awayTeamName = Teams.abbreviation
 
         INNER JOIN 
 
         (SELECT * FROM Teams) AS B ON TempGames.homeTeamName = B.abbreviation
-    );
+    ) 
+    WHERE gameID is not NULL;
 
 -- Creating GameOfficials
 
@@ -189,7 +206,7 @@ create table AtBats (
             check (isTop = 1 OR isTop = 0)
 );
 
-load data infile '/var/lib/mysql-files/MLB/atbats.csv' ignore into table AtBats
+load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/atbats.csv' ignore into table AtBats
     fields terminated by ','
     enclosed by '"'
     lines terminated by '\n'
@@ -209,7 +226,7 @@ create table tempEjections (
             abbreviation char(3)
 );
 
-load data infile '/var/lib/mysql-files/MLB/ejections.csv' ignore into table tempEjections
+load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/ejections.csv' ignore into table tempEjections
     fields terminated by ','
     enclosed by '"'
     lines terminated by '\n'
@@ -352,7 +369,7 @@ create table tempPitches (
 
 
 
-load data infile '/var/lib/mysql-files/MLB/pitches.csv' ignore into table tempPitches
+load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/pitches.csv' ignore into table tempPitches
     fields terminated by ','
     enclosed by '"'
     lines terminated by '\n'
