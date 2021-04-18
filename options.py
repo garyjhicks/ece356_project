@@ -15,10 +15,9 @@ class Options:
         self.season = None
         self.pitch_stat = None
         self.pitch_filter = None
-        self.zone_filter = None
         self.men_on_base = None
         self.ball_count = None
-        self.strikecount = None
+        self.strike_count = None
         self.team_stat = None
         self.pitcher_stat = None
         self.batter_stat = None
@@ -43,15 +42,14 @@ class Options:
         self.season = args.season
         self.pitch_stat = args.pitch_stat
         self.pitch_filter = args.pitch_filter
-        self.zone_filter = args.zone_filter
         self.men_on_base = args.men_on_base
         self.ball_count = args.ball_count
-        self.strikecount = args.strikecount
+        self.strike_count = args.strike_count
         self.team_stat = args.team_stat
         self.pitcher_stat = args.pitcher_stat
         self.batter_stat = args.batter_stat
         self.pitcher_throws = args.pitcher_throws
         self.batter_stands = args.batter_stands
         self.num_outs = args.num_outs
-        self.home_or_away = arg.home_or_away
+        self.home_or_away = args.home_or_away
 

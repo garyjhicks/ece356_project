@@ -38,7 +38,7 @@ parser.add_argument('--team', dest='team', default=None, nargs='+', choices=[
     'Cardinals',
     'Rays',
     'Rangers',
-    'Blue Jays',
+    'Blue_Jays',
     'Nationals'
 ],help='Specify team name.')
 
@@ -71,7 +71,7 @@ parser.add_argument('--opp_team_vs_t', dest='opp_team_vs_t', default=None, nargs
     'Cardinals',
     'Rays',
     'Rangers',
-    'Blue Jays',
+    'Blue_Jays',
     'Nationals'
 ],help='Specify opposing team name.')
 
@@ -80,8 +80,8 @@ parser.add_argument('--opp_team_vs_b', dest='opp_team_vs_b', default=None, nargs
     'Diamondbacks',
     'Braves',
     'Orioles',
-    'Red Sox',
-    'White Sox',
+    'Red_Sox',
+    'White_Sox',
     'Cubs',
     'Reds',
     'Indians',
@@ -104,7 +104,7 @@ parser.add_argument('--opp_team_vs_b', dest='opp_team_vs_b', default=None, nargs
     'Cardinals',
     'Rays',
     'Rangers',
-    'Blue Jays',
+    'Blue_Jays',
     'Nationals'
 ],help='Specify opposing team name.')
 
@@ -113,8 +113,8 @@ parser.add_argument('--opp_team_vs_p', dest='opp_team_vs_p', default=None, nargs
     'Diamondbacks',
     'Braves',
     'Orioles',
-    'Red Sox',
-    'White Sox',
+    'Red_Sox',
+    'White_Sox',
     'Cubs',
     'Reds',
     'Indians',
@@ -137,7 +137,7 @@ parser.add_argument('--opp_team_vs_p', dest='opp_team_vs_p', default=None, nargs
     'Cardinals',
     'Rays',
     'Rangers',
-    'Blue Jays',
+    'Blue_Jays',
     'Nationals'
 ],help='Specify opposing team name.')
 
@@ -147,37 +147,37 @@ parser.add_argument('--dr', dest='dr', nargs=2, default=None, help='Specify date
 parser.add_argument('--season', dest='season', default=None, help='Specify season in form of YYYY.')
 
 # events that can be selected
-parser.add_argument('--event_count', dest='event_count', nargs='+', default=None, choices=
+parser.add_argument('--event_count', dest='event_count', default=None, nargs='+', choices=
 [
-    'Batter Interference', 
-    'Bunt Groundout',
-    'Bunt Lineout',
-    'Bunt Popout',
-    'Catcher Interference',
+    'Batter_Interference', 
+    'Bunt_Groundout',
+    'Bunt_Lineout',
+    'Bunt_Popout',
+    'Catcher_Interference',
     'Double',
-    'Double Play',
-    'Field Error',
-    'Fielders Choice',
-    'Fielders Choice Out',
+    'Double_Play',
+    'Field_Error',
+    'Fielders_Choice',
+    'Fielders_Choice_Out',
     'Flyout',
     'Forceout',
-    'Grounded Into DP'
+    'Grounded_Into_DP',
     'Groundout',
-    'Hit By Pitch',
-    'Home Run',
-    'Intent Walk',
+    'Hit_By_Pitch',
+    'Home_Run',
+    'Intent_Walk',
     'Lineout',
-    'Pop Out',
-    'Runner Out',
-    'Sac Bunt',
-    'Sac Fly',
-    'Sac Fly DP',
-    'Sacrifice Bunt DP',
+    'Pop_Out',
+    'Runner_Out',
+    'Sac_Bunt',
+    'Sac_Fly',
+    'Sac_Fly_DP',
+    'Sacrifice_Bunt_DP',
     'Single',
     'Strikeout',
-    'Strikeout DP',
+    'Strikeout_DP',
     'Triple',
-    'Triple Play',
+    'Triple_Play',
     'Walk'
 ]
 , help='Specify the event you want to check for a given batter.')
@@ -216,12 +216,9 @@ parser.add_argument('--pitch_stat', dest='pitch_stat', default=None, choices=
     'breakLength',
     'px',
     'pz',
-    'nasty',
-    #count, return distrubtion
-    'pitch_type',
-    'zone'
+    'nasty'
 ]
-, help='Specify the stat you want to know for a given batter.')
+, help='Returns averages for the given pitch stats.')
 
 # specific team stats
 parser.add_argument('--team_stat', dest='team_stat', default=None, choices=
@@ -256,26 +253,6 @@ parser.add_argument('--batter_stands', dest='batter_stands', default=None, choic
 , help='Specify whether you want stats solely against L or R standing batters.')
 
 # ONLY ALLOW FOR PITCHER QUERIES
-parser.add_argument('--zone_filter', dest='zone_filter', default=None, choices=
-[
-'1',
-'2',
-'3',
-'4',
-'5',
-'6',
-'7',
-'8',
-'9',
-'10',
-'11',
-'12',
-'13',
-'14'
-]
-, help='Specify whether you want stats solely for a given zone')
-
-# ONLY ALLOW FOR PITCHER QUERIES
 parser.add_argument('--pitch_filter', dest='pitch_filter', default=None, choices=
 [
 'CH',
@@ -286,7 +263,7 @@ parser.add_argument('--pitch_filter', dest='pitch_filter', default=None, choices
 'FS',
 'FT',
 'IN',
-'KC'
+'KC',
 'KN',
 'PO',
 'SC',

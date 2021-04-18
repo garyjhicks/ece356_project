@@ -10,8 +10,8 @@ def dt_date_converter(date):
 
 # input is datetime objects
 def dr_dt(start,end):
-    start_date = start.strftime('%x %X')
-    end_date = end.strftime('%x %X')
+    start_date = start.strftime('%Y-%m-%d %X')
+    end_date = end.strftime('%Y-%m-%d %X')
     return "dateTime > {start} AND dateTime < {end}".format(start=s(start_date),end=s(end_date))
 
 # -d exact
@@ -45,6 +45,21 @@ def stat_count_option(stat, count):
 def stand_option(stand):
     return "stand = {stand}".format(stand=s(stand))
 
+def men_on_base_option(base):
+    if base == '1B':
+        return "on1b = 1"
+    if base == '2B':
+        return "on2b = 1"
+    if base == '3B':
+        return "on3b = 1"
+    if base == "Any":
+        return "(on1b = 1 OR on2b = 1 OR on3b = 1)" 
+    if base == "None":
+        return "(on1b = 0 AND on2b = 0 AND on3b = 0)" 
+
+def num_outs_option(outs):
+    return "AtBats.outs = {o} ".format(o=outs)
+
 def player_name_option(first,last):
     return "firstName = {first} AND lastName = {last}".format(first=s(first),last=s(last))
 
@@ -52,10 +67,14 @@ def player_id_filter(pid):
     return "playerID = {playerID}".format(playerID=pid)
 
 def pitcherID_where_subquery(first,last):
-    return "pitcherID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
+    fname = " ".join(first)
+    lname = " ".join(last)
+    return "pitcherID = (SELECT playerID FROM PlayerNames WHERE {})".format(player_name_option(fname,lname))
 
 def batterID_where_subquery(first,last):
-    return "batterID = (SELECT first(playerID) FROM PlayerInfo WHERE {})".format(player_name_option(first,last))
+    fname = " ".join(first)
+    lname = " ".join(last)
+    return "batterID = (SELECT playerID FROM PlayerNames WHERE {})".format(player_name_option(fname,lname))
 
 def teamID_where_subquery(name):
     team = " ".join(name)
@@ -70,17 +89,17 @@ def teamID_from_teamName_subquery(name):
 def opp_team_vs_b_option(team):
     if_b_home = "(isTop = true AND homeTeamID = {})".format(teamID_from_teamName_subquery(team))
     if_b_away = "(isTop = false AND awayTeamID = {})".format(teamID_from_teamName_subquery(team))
-    return "WHERE {h} OR {a}".format(h=if_b_home,a=if_b_away)
+    return "({h} OR {a})".format(h=if_b_home,a=if_b_away)
 
 def opp_team_vs_p_option(team):
     if_p_home = "(isTop = false AND homeTeamID = {})".format(teamID_from_teamName_subquery(team))
     if_p_away = "(isTop = true AND awayTeamID = {})".format(teamID_from_teamName_subquery(team))
-    return "WHERE {h} OR {a}".format(h=if_p_home,a=if_p_away)
+    return "({h} OR {a})".format(h=if_p_home,a=if_p_away)
 
 def opp_team_vs_t_option(team):
     if_t_home = "(homeTeamID = {})".format(teamID_from_teamName_subquery(team))
     if_t_away = "(awayTeamID = {})".format(teamID_from_teamName_subquery(team))
-    return "WHERE {h} OR {a}".format(h=if_t_home,a=if_t_away)
+    return "({h} OR {a})".format(h=if_t_home,a=if_t_away)
 
 # single player stat
 def select_player_stat(options):
@@ -90,34 +109,35 @@ def select_player_stat(options):
     
     if options.pitcher_stat:
         if options.pitcher_stat == 'K/9':
-            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+            q += "COUNT(event) / ( SELECT COUNT(DISTINCT AtBats.gameID, inning) {f} {where})".format(f=from_statement(options),where=where_statement(options,is_numerator=True))
         if options.pitcher_stat == 'WHIP':
-            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+            q += "COUNT(event) / ( SELECT COUNT(DISTINCT AtBats.gameID, inning) {f} {where})".format(f=from_statement(options),where=where_statement(options,is_numerator=True))
         if options.pitcher_stat == 'HR/9':
-            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+            q += "COUNT(event) / ( SELECT COUNT(DISTINCT AtBats.gameID, inning) {f} {where})".format(f=from_statement(options),where=where_statement(options,is_numerator=True))
         if options.pitcher_stat == 'BB/9':
-            q += "COUNT(event) / ( COUNT DISTINCT gameID, inning, outs / 3)"
+            q += "COUNT(event) / ( SELECT COUNT(DISTINCT AtBats.gameID, inning) {f} {where})".format(f=from_statement(options),where=where_statement(options,is_numerator=True))
         if options.pitcher_stat == 'K/BB':
-            q += "(SELECT COUNT(event) FROM WHERE {} AND event = \'Strikeout\')/ COUNT(event)".pitcherID_where_subquery(options.pitcher_fn,options.pitcher_fn)
+            q += "(SELECT COUNT(event) FROM AtBats WHERE {} AND event = \'Strikeout\')/ COUNT(event)".pitcherID_where_subquery(options.pitcher_fn,options.pitcher_fn)
     
     if options.batter_stat:
+        date = ""
         if options.batter_stat == 'BA':
-            q += "(SELECT COUNT(*) from AtBats WHERE {} AND (event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+            q += "(SELECT COUNT(*) {f} {where} AND (event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(f=from_statement(options),where=where_statement(options, True))
         if options.batter_stat == 'SLG':
-            q += "((SELECT COUNT(event) FROM AtBats WHERE event = \'Single\' AND {player}) + 2 x (SELECT COUNT(event) FROM Atbats WHERE event = \'Double\' AND {player}) + 3 x (SELECT COUNT(event) FROM Atbats WHERE event = \'Triple\' AND {player}) + 4 x (SELECT COUNT(event) FROM Atbats WHERE event = \'Home Run\' AND {player}) ) / Count(*)".format(player=batterID_where_subquery(options.batter_fn,options.batter_ln))
+            q += "((SELECT COUNT(event) {f} {where} AND event = \'Single\') + 2 * (SELECT COUNT(event) {f} {where} AND event = \'Double\') + 3 * (SELECT COUNT(event) {f} {where} AND event = \'Triple\') + 4 * (SELECT COUNT(event) {f} {where} AND event = \'Home Run\') ) / Count(*)".format(f=from_statement(options),where=where_statement(options, True))
         if options.batter_stat == 'OBP':
-            q += "(SELECT COUNT(*) from AtBats WHERE {} AND (event = \'Hit By Pitch\' OR event = \'Walk\' OR event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+            q += "(SELECT COUNT(*) {f} {where} AND (event = \'Hit By Pitch\' OR event = \'Walk\' OR event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(f=from_statement(options),where=where_statement(options, True))
         if options.batter_stat == 'OPS':
-            SLG = "((SELECT COUNT(event) FROM AtBats WHERE event = \'Single\' AND {player}) + 2 x (SELECT COUNT(event) FROM Atbats WHERE event = \'Double\' AND {player}) + 3 x (SELECT COUNT(event) FROM Atbats WHERE event = \'Triple\' AND {player}) + 4 x (SELECT COUNT(event) FROM Atbats WHERE event = \'Home Run\' AND {player}) ) / Count(*)".format(player=batterID_where_subquery(options.batter_fn,options.batter_ln))
-            OBP = "(SELECT COUNT(*) FROM AtBats WHERE {} AND (event = \'Hit By Pitch\' OR event = \'Walk\' OR event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+            SLG = "((SELECT COUNT(event) {f} {where} AND event = \'Single\') + 2 * (SELECT COUNT(event) {f} {where} AND event = \'Double\') + 3 * (SELECT COUNT(event) {f} {where} AND event = \'Triple\') + 4 * (SELECT COUNT(event) {f} {where} AND event = \'Home Run\') ) / Count(*)".format(f=from_statement(options),where=where_statement(options, True))
+            OBP = "(SELECT COUNT(*) {f} {where} AND (event = \'Hit By Pitch\' OR event = \'Walk\' OR event = \'Single\' OR event = \'Double\' OR event = \'Triple\' OR event = \'Home Run\')) / COUNT(*)".format(f=from_statement(options),where=where_statement(options, True))
             q += "({} + {})".format(SLG,OBP)
         if options.batter_stat == 'BB/K':
-            q += "(SELECT COUNT(*) from AtBats WHERE {} AND event = \'Walk\') / COUNT(*)".format(batterID_where_subquery(options.batter_fn,options.batter_ln))
+            q += "(SELECT COUNT(*) {f} {where} AND event = \'Walk\') / COUNT(*)".format(f=from_statement(options),where=where_statement(options, True))
 
 
     # stat thats not pitch_type or zone
     if options.pitch_stat:
-        q += ("AVG(event)")
+        q += "AVG({})".format(options.pitch_stat)
 
     return q
 
@@ -128,6 +148,7 @@ def from_statement(options):
     tables_needed = set()
     arr = []
     if (options.batter_fn or
+        options.pitcher_fn or
         options.event_count or
         options.pitcher_throws or
         options.batter_stands or
@@ -135,31 +156,34 @@ def from_statement(options):
         options.pitcher_stat):
         tables_needed.add("AtBats")
     if (options.pitch_stat or 
-        options.pitch_stat or 
         options.pitch_filter or 
-        options.zone_filter or 
         options.men_on_base or
         options.ball_count or
-        options.strikecount):
+        options.strike_count):
         tables_needed.add("Pitches")
     if (options.d or
         options.dr or
         options.season or
         options.team_stat or
-        options.home_or_away):
+        options.home_or_away or 
+        options.opp_team_vs_b or
+        options.opp_team_vs_p or
+        options.opp_team_vs_t):
         tables_needed.add("Games")
     if (options.team or
         options.team_stat):
         tables_needed.add("Teams")
-    if "AtBats" in tables_needed and "Games" in tables_needed:
+    if "AtBats" in tables_needed and "Games" in tables_needed and "Pitches" in tables_needed:
+        arr.append("AtBats INNER JOIN Games ON AtBats.gameID = Games.gameID INNER JOIN (Pitches INNER JOIN (SELECT abID,MAX(pitchNum) as maxPitchNum FROM Pitches GROUP BY abID) as A ON Pitches.abID = A.abID AND Pitches.pitchNum = A.maxPitchNum) ON Pitches.abID = AtBats.abID")
+    elif "AtBats" in tables_needed and "Games" in tables_needed:
         arr.append("AtBats INNER JOIN Games ON AtBats.gameID = Games.gameID")
-    if "AtBats" in tables_needed and "Pitches" in tables_needed:
+    elif "AtBats" in tables_needed and "Pitches" in tables_needed:
         arr.append("AtBats INNER JOIN (Pitches INNER JOIN (SELECT abID,MAX(pitchNum) as maxPitchNum FROM Pitches GROUP BY abID) as A ON Pitches.abID = A.abID AND Pitches.pitchNum = A.maxPitchNum) ON Pitches.abID = AtBats.abID")
     if not arr:
         arr.append("AtBats")
     return " FROM " + "".join(arr)
 
-def where_statement(options):
+def where_statement(options,is_numerator=False):
     q = " WHERE "
     arr = []
     if options.batter_fn: # need to get playerID
@@ -179,7 +203,8 @@ def where_statement(options):
     if options.season:
         arr.append(season_option(options.season))
     if options.event_count:
-        arr.append(event_option(options.event_count))
+        event = " ".join(options.event_count)
+        arr.append(event_option(event))
     if options.pitch_filter:
         arr.append(pitch_filter_option(options.pitch_filter))
     if options.opp_team_vs_b:
@@ -188,7 +213,11 @@ def where_statement(options):
         arr.append(opp_team_vs_p_option(options.opp_team_vs_p))
     if options.opp_team_vs_t:
         arr.append(opp_team_vs_t_option(options.opp_team_vs_t))
-    if options.pitcher_stat:
+    if options.men_on_base:
+        arr.append(men_on_base_option(options.men_on_base))
+    if options.num_outs:
+        arr.append(num_outs_option(options.num_outs))
+    if options.pitcher_stat and not is_numerator:
         if options.pitcher_stat == 'K/9':
             arr.append(event_option('Strikeout'))
         if options.pitcher_stat == 'WHIP':
@@ -205,7 +234,7 @@ def where_statement(options):
             arr.append(event_option('Walk'))
         if options.pitcher_stat == 'K/BB':
             arr.append(event_option('Walk'))
-    if options.batter_stat:
+    if options.batter_stat and not is_numerator:
         if options.batter_stat == 'BA' or options.batter_stat == 'SLG' or options.batter_stat == 'OPS':
             events = []
             events.append(event_option('Bunt Groundout'))
@@ -253,7 +282,7 @@ def where_statement(options):
 
 
 
-    return q + " AND ".join(arr) + ";"
+    return q + " AND ".join(arr)
 
 def query_builder(options):
     
@@ -261,6 +290,7 @@ def query_builder(options):
     query = select_player_stat(options)
     query += from_statement(options)
     query += where_statement(options)
+    query += ";"
     return query
 
 #print(select_player_stat("event") + from_statement() +  + event_option("Strikeout"))

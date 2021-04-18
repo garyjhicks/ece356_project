@@ -45,7 +45,7 @@ VALUES
 (14,'LAN','Los Angeles','Dodgers'),
 (15,'MIA','Miami','Marlins'),
 (16,'MIL','Milwaukee','Brewers'),
-(17,'MIN','Cincinnati','Reds'),
+(17,'MIN','Minnesota','Twins'),
 (18,'NYA','New York','Yankees'),
 (19,'NYN','New York','Mets'),
 (20,'OAK','Oakland','Athletics'),
@@ -443,7 +443,7 @@ load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/pitche
 
 
 
-    create table FullPitches (
+create table FullPitches (
     code char(2),
     type char(1),
     batterScore int,
@@ -463,6 +463,22 @@ load data LOCAL infile '~/Documents/ece356/DockerForA2/ece356_project/MLB/pitche
         --    check (sCount >= 0 AND sCount <= 2),
         --    check (bCount >= 0 AND bCount <= 3)
 );
+
+insert into FullPitches
+    SELECT   
+    code,
+    type,
+    batterScore,
+    abID,
+    bCount, 
+    sCount, 
+    outs, 
+    pitchNum,
+    on1b,
+    on2b,
+    on3b
+    FROM tempPitches;
+
 
 create table PartialPitches (
     px decimal(6,3),
@@ -489,15 +505,13 @@ create table PartialPitches (
     pfxZ decimal(5,3),
     nasty decimal(3),
     zone decimal(2),
-    code char(2),
-    type char(1),
     pitchType char(2),
     abID decimal(10),
     pitchNum int,
 
 -- Key Constraints
 		   primary key (abID, pitchNum),
-		   foreign key (abID) references AtBats(abID)
+           foreign key (abID, pitchNum) references FullPitches(abID, pitchNum)
 -- Integrity Constraints
         --    check (outs >= 0 AND outs <= 2),
         --    check (sCount >= 0 AND sCount <= 2),
@@ -530,8 +544,6 @@ INSERT into PartialPitches
     pfxZ,
     nasty,
     zone,
-    code,
-    type,
     pitchType,
     abID,
     pitchNum
@@ -559,23 +571,7 @@ INSERT into PartialPitches
     AND pfxZ is not NULL
     AND nasty is not NULL
     AND zone is not NULL
-    AND code is not NULL
-    AND type is not NULL
     AND pitchType is not NULL
     AND pitchNum is not NULL;
 
-insert into FullPitches
-    SELECT   
-    code,
-    type,
-    batterScore,
-    abID,
-    bCount, 
-    sCount, 
-    outs, 
-    pitchNum,
-    on1b,
-    on2b,
-    on3b
-    FROM tempPitches;
-
+create view Pitches AS SELECT * FROM FullPitches INNER JOIN PartialPitches USING (abID, pitchNum);
