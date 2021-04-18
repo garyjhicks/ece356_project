@@ -82,6 +82,12 @@ def teamID_where_subquery(name):
     away = "awayTeamID = (SELECT teamID FROM Teams WHERE name = {})".format(s(team))
     return "({home} OR {away})".format(home=home,away=away)
 
+def home_or_away_option(options):
+    if options.home_or_away == 'h':
+        return "homeTeamID = {}".format(teamID_from_teamName_subquery(options.team))
+    if options.home_or_away == 'a':
+        return "awayTeamID = {}".format(teamID_from_teamName_subquery(options.team))
+
 def teamID_from_teamName_subquery(name):
     team = " ".join(name)
     return "(SELECT teamID FROM Teams WHERE name = {})".format(s(team))
@@ -150,6 +156,10 @@ def select_player_stat(options):
             opphome = "SUM(homeScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
             oppaway = "SUM(awayScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
             q += "({home} - {oh} + {away} - {oa}) / COUNT(gameID)".format(home=home,oh=opphome,away=away,oa=oppaway)
+        if options.team_stat == 'run_dif':
+            home = "SUM(homeScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            away = "SUM(awayScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            q += "({home} + {away})".format(home=home,away=away)
         if options.team_stat == 'wins':
             q += "(COUNT(*) {f} {where} AND homeTeamScore > awayTeamScore AND homeTeamID = {team}) + COUNT(*)".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
         if options.team_stat == 'losses':
@@ -238,6 +248,8 @@ def where_statement(options,is_numerator=False):
         arr.append(men_on_base_option(options.men_on_base))
     if options.num_outs:
         arr.append(num_outs_option(options.num_outs))
+    if options.home_or_away:
+        arr.append(home_or_away_option(options))
     if options.team_stat:
         if options.team_stat == "wins":
             arr.append("homeTeamScore < awayTeamScore AND awayTeamID = {}".format(teamID_from_teamName_subquery(options.team)))
