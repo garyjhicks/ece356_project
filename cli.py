@@ -44,12 +44,12 @@ while True:
     opt.set_to_args(args)
     # execute query
     q = query_builder(opt)
-    print(q)
+    #print(q)
     # print
 
     mycursor.execute(q)
     myresult = mycursor.fetchall()
-    print(myresult)
+    #print(myresult)
     for x in myresult:
-        print(x)
+        print(x[0])
     

@@ -83,9 +83,9 @@ def teamID_where_subquery(name):
     return "({home} OR {away})".format(home=home,away=away)
 
 def home_or_away_option(options):
-    if options.home_or_away == 'h':
+    if options.home_or_away == 'H':
         return "homeTeamID = {}".format(teamID_from_teamName_subquery(options.team))
-    if options.home_or_away == 'a':
+    if options.home_or_away == 'A':
         return "awayTeamID = {}".format(teamID_from_teamName_subquery(options.team))
 
 def teamID_from_teamName_subquery(name):
@@ -143,27 +143,45 @@ def select_player_stat(options):
 
     if options.team_stat:
         if options.team_stat == 'avg_runs_for':
-            home = "SUM(homeScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            away = "SUM(awayScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            home = "(SELECT SUM(homeScore) {f} {where} AND homeTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            away = "(SELECT SUM(awayScore) {f} {where} AND awayTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
             q += "({home} + {away}) / COUNT(gameID)".format(home=home,away=away)
         if options.team_stat == 'avg_runs_against':
-            home = "SUM(homeScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            away = "SUM(awayScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            q += "({home} + {away}) / COUNT(gameID)".format(home=home,away=away)
+            opphome = "(SELECT SUM(homeScore) {f} {where} AND awayTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            oppaway = "(SELECT SUM(awayScore) {f} {where} AND homeTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            if options.home_or_away and options.home_or_away == 'H':
+                opphome = "0"
+            if options.home_or_away and options.home_or_away == 'A':
+                oppaway = "0"
+            q += "({home} + {away}) / COUNT(gameID)".format(home=opphome,away=oppaway)
         if options.team_stat == 'avg_run_dif':
-            home = "SUM(homeScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            away = "SUM(awayScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            opphome = "SUM(homeScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            oppaway = "SUM(awayScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            home = "(SELECT SUM(homeScore) {f} {where} AND homeTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            away = "(SELECT SUM(awayScore) {f} {where} AND awayTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            opphome = "(SELECT SUM(homeScore) {f} {where} AND awayTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            oppaway = "(SELECT SUM(awayScore) {f} {where} AND homeTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            if options.home_or_away and options.home_or_away == 'H':
+                away = "0"
+                opphome = "0"
+            if options.home_or_away and options.home_or_away == 'A':
+                home = "0"
+                oppaway = "0"
             q += "({home} - {oh} + {away} - {oa}) / COUNT(gameID)".format(home=home,oh=opphome,away=away,oa=oppaway)
         if options.team_stat == 'run_dif':
-            home = "SUM(homeScore) {f} {where} AND homeTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            away = "SUM(awayScore) {f} {where} AND awayTeamId = {team}".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
-            q += "({home} + {away})".format(home=home,away=away)
+            home = "(SELECT SUM(homeScore) {f} {where} AND homeTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            away = "(SELECT SUM(awayScore) {f} {where} AND awayTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            opphome = "(SELECT SUM(homeScore) {f} {where} AND awayTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            oppaway = "(SELECT SUM(awayScore) {f} {where} AND homeTeamId = {team})".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            if options.home_or_away and options.home_or_away == 'H':
+                away = "0"
+                opphome = "0"
+            if options.home_or_away and options.home_or_away == 'A':
+                home = "0"
+                oppaway = "0"
+            q += "({home} - {oh} + {away} - {oa}) / COUNT(gameID) * COUNT(gameID)".format(home=home,oh=opphome,away=away,oa=oppaway)
         if options.team_stat == 'wins':
-            q += "(COUNT(*) {f} {where} AND homeTeamScore > awayTeamScore AND homeTeamID = {team}) + COUNT(*)".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            q += "(SELECT COUNT(*) {f} {where} AND homeScore > awayScore AND homeTeamID = {team}) + COUNT(*)".format(f=from_statement(options),where=where_statement(options,ignore_score=True),team=teamID_from_teamName_subquery(options.team))
         if options.team_stat == 'losses':
-            q += "(COUNT(*) {f} {where} AND homeTeamScore < awayTeamScore AND homeTeamID = {team}) + COUNT(*)".format(f=from_statement(options),where=where_statement(options),team=teamID_from_teamName_subquery(options.team))
+            q += "(SELECT COUNT(*) {f} {where} AND homeScore < awayScore AND homeTeamID = {team}) + COUNT(*)".format(f=from_statement(options),where=where_statement(options,ignore_score=True),team=teamID_from_teamName_subquery(options.team))
 
     # stat thats not pitch_type or zone
 
@@ -211,10 +229,13 @@ def from_statement(options):
     elif "AtBats" in tables_needed and "Pitches" in tables_needed:
         arr.append("AtBats INNER JOIN (Pitches INNER JOIN (SELECT abID,MAX(pitchNum) as maxPitchNum FROM Pitches GROUP BY abID) as A ON Pitches.abID = A.abID AND Pitches.pitchNum = A.maxPitchNum) ON Pitches.abID = AtBats.abID")
     if not arr:
-        arr.append("AtBats")
+        if "Teams" in tables_needed:
+            arr.append("Games")
+        else:
+            arr.append("AtBats")
     return " FROM " + "".join(arr)
 
-def where_statement(options,is_numerator=False):
+def where_statement(options,is_numerator=False,ignore_score=False):
     q = " WHERE "
     arr = []
     if options.batter_fn: # need to get playerID
@@ -226,7 +247,8 @@ def where_statement(options,is_numerator=False):
         lastName = options.pitcher_ln
         arr.append(pitcherID_where_subquery(firstName,lastName))
     if options.team:
-        arr.append(teamID_where_subquery(options.team))
+        if not options.home_or_away:
+            arr.append(teamID_where_subquery(options.team))
     if options.dr:
         start = options.dr[0]
         end = options.dr[1]
@@ -251,10 +273,10 @@ def where_statement(options,is_numerator=False):
     if options.home_or_away:
         arr.append(home_or_away_option(options))
     if options.team_stat:
-        if options.team_stat == "wins":
-            arr.append("homeTeamScore < awayTeamScore AND awayTeamID = {}".format(teamID_from_teamName_subquery(options.team)))
-        if options.team_stat == "losses":
-            arr.append("homeTeamScore > awayTeamScore AND awayTeamID = {}".format(teamID_from_teamName_subquery(options.team)))
+        if options.team_stat == "wins" and not ignore_score:
+            arr.append("homeScore < awayScore AND awayTeamID = {}".format(teamID_from_teamName_subquery(options.team)))
+        if options.team_stat == "losses" and not ignore_score:
+            arr.append("homeScore > awayScore AND awayTeamID = {}".format(teamID_from_teamName_subquery(options.team)))
     if options.pitcher_stat and not is_numerator:
         if options.pitcher_stat == 'K/9':
             arr.append(event_option('Strikeout'))

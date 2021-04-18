@@ -14,10 +14,10 @@ parser.add_argument('--team', dest='team', default=None, nargs='+', choices=[
     'Diamondbacks',
     'Braves',
     'Orioles',
-    'Red Sox',
-    'White Sox',
+    'Red_Sox',
+    'White_Sox',
     'Cubs',
-    'Reds',
+    'Twins',
     'Indians',
     'Rockies',
     'Tigers',
@@ -47,10 +47,10 @@ parser.add_argument('--opp_team_vs_t', dest='opp_team_vs_t', default=None, nargs
     'Diamondbacks',
     'Braves',
     'Orioles',
-    'Red Sox',
-    'White Sox',
+    'Red_Sox',
+    'White_Sox',
     'Cubs',
-    'Reds',
+    'Twins',
     'Indians',
     'Rockies',
     'Tigers',
@@ -83,7 +83,7 @@ parser.add_argument('--opp_team_vs_b', dest='opp_team_vs_b', default=None, nargs
     'Red_Sox',
     'White_Sox',
     'Cubs',
-    'Reds',
+    'Twins',
     'Indians',
     'Rockies',
     'Tigers',
@@ -116,7 +116,7 @@ parser.add_argument('--opp_team_vs_p', dest='opp_team_vs_p', default=None, nargs
     'Red_Sox',
     'White_Sox',
     'Cubs',
-    'Reds',
+    'Twins',
     'Indians',
     'Rockies',
     'Tigers',
@@ -224,16 +224,13 @@ parser.add_argument('--pitch_stat', dest='pitch_stat', default=None, choices=
 parser.add_argument('--team_stat', dest='team_stat', default=None, choices=
 [
     #averages
-    'attendance',
     'avg_runs_for',
     'avg_runs_against',
-    'avg_run_dif'
+    'avg_run_dif',
     #count
     'wins',
     'losses',
     'run_dif',
-    #math
-    'win_percentage'
 ]
 , help='Specify the stat you want to know for a given team.')
 
